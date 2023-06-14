@@ -14,6 +14,7 @@ import {
   Button,
   useCartLines,
   useApplyCartLinesChange,
+  Checkbox,
 } from "@shopify/checkout-ui-extensions-react";
 
 render("Checkout::Dynamic::Render", () => <App />);
@@ -23,41 +24,45 @@ function App() {
   const [adding, setAdding] = useState(false);
   const applyCartLinesChange = useApplyCartLinesChange();
   const cartLineProductVariantIds = lines.map((item) => item.merchandise.id);
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState({});
   const [loading, setLoading] = useState(false);
   const { query, i18n } = useExtensionApi();
   const [showError, setShowError] = useState(false);
+  const [check, setCheck] = useState(true);
 
   useEffect(() => {
     setLoading(true);
     query(
-      `query ($first: Int!) {
-        products(first: $first) {
-          nodes {
-            id
-            title
-            images(first:1){
-              nodes {
-                url
-              }
+      `query ($handle: String!) {
+        productByHandle(handle: $handle) {
+          id
+          title
+          images(first:1){
+            nodes {
+              url
             }
-            variants(first: 1) {
-              nodes {
-                id
-                price {
-                  amount
-                }
+          }
+          variants(first: 1) {
+            nodes {
+              id
+              price {
+                amount
               }
             }
           }
         }
       }`,
       {
-        variables: { first: 5 },
+        variables: { handle: "gift-card" },
       }
     )
       .then(({ data }) => {
-        setProducts(data.products.nodes);
+        setProducts(data.productByHandle);
+        applyCartLinesChange({
+          type: "addCartLine",
+          merchandiseId: data.productByHandle.variants.nodes[0].id,
+          quantity: 1,
+        });
       })
       .catch((error) => console.error(error))
       .finally(() => setLoading(false));
@@ -68,6 +73,7 @@ function App() {
       return () => clearTimeout(timer);
     }
   }, [showError]);
+
   if (loading) {
     return (
       <BlockStack spacing="loose">
@@ -93,23 +99,33 @@ function App() {
     );
   }
   // If product variants can't be loaded, then show nothing
-  if (!loading && products.length === 0) {
+  if (!loading && Object.keys(products).length === 0) {
     return null;
   }
-  const productsOnOffer = products.filter((product) => {
-    const isProductVariantInCart = product.variants.nodes.some(({ id }) =>
-      cartLineProductVariantIds.includes(id)
-    );
-    return !isProductVariantInCart;
-  });
-  const { images, title, variants } = productsOnOffer[0];
+  const { images, title, variants } = products;
   const renderPrice = i18n.formatCurrency(variants.nodes[0].price.amount);
   const imageUrl =
     images.nodes[0]?.url ??
     "https://cdn.shopify.com/s/files/1/0777/6911/3904/files/Main_64x64.jpg";
-  if (!productsOnOffer.length) {
-    return null;
-  }
+  const handleCheckboxChange = async (value) => {
+    setCheck(value);
+    if (value) {
+      await applyCartLinesChange({
+        type: "addCartLine",
+        merchandiseId: variants.nodes[0].id,
+        quantity: 1,
+      });
+    } else {
+      const line = lines.find(
+        (line) => line.merchandise.id === variants.nodes[0].id
+      );
+      await applyCartLinesChange({
+        type: "updateCartLine",
+        id: line.id,
+        quantity: 0,
+      });
+    }
+  };
   return (
     <BlockStack spacing="loose">
       <Divider />
@@ -138,30 +154,13 @@ function App() {
             </Text>
             <Text appearance="subdued">{renderPrice}</Text>
           </BlockStack>
-          <Button
-            kind="secondary"
-            loading={adding}
-            accessibilityLabel={`Add ${title} to cart`}
-            onPress={async () => {
-              setAdding(true);
-              // Apply the cart lines change
-              const result = await applyCartLinesChange({
-                type: "addCartLine",
-                merchandiseId: variants.nodes[0].id,
-                quantity: 1,
-              });
-              setAdding(false);
-              if (result.type === "error") {
-                // An error occurred adding the cart line
-                // Verify that you're using a valid product variant ID
-                // For example, 'gid://shopify/ProductVariant/123'
-                setShowError(true);
-                console.error(result.message);
-              }
-            }}
-          >
-            Add
-          </Button>
+
+          <Checkbox
+            id="checkbox"
+            name="checkbox"
+            onChange={(value) => handleCheckboxChange(value)}
+            value={check}
+          ></Checkbox>
         </InlineLayout>
       </BlockStack>
       {showError && (
