@@ -15,7 +15,7 @@
     "@shopify/app": "3.46.4",
     "@shopify/cli": "3.46.4"
   },
-  "author": "Sagar Chandresha",
+  "author": "MD",
   "private": true,
   "workspaces": [
     "web",
