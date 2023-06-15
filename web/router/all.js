@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { createNewUser } from "../controllers/createNewUser.js";
+import { getAllUsers } from "../controllers/getAllUsers.js";
 
 const allRouter = async (app) => {
   app.use(cors());
@@ -13,6 +14,7 @@ const allRouter = async (app) => {
     });
   });
   app.post("/api/createNewUser", createNewUser);
+  app.get("/api/getAllUsers", getAllUsers);
 };
 
 export default allRouter;
