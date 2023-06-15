@@ -19,7 +19,7 @@ export default function HomePage() {
   const { t } = useTranslation();
   return (
     <Page narrowWidth>
-      <TitleBar title={t("HomePage.title")} primaryAction={null} />
+      <TitleBar title={"Checkout UI Extension"} primaryAction={null} />
       <Layout>
         <Layout.Section>
           <Card sectioned>

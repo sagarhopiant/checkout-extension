@@ -23,7 +23,7 @@ export default function App() {
             <NavigationMenu
               navigationLinks={[
                 {
-                  label: t("NavigationMenu.pageName"),
+                  label: "Users",
                   destination: "/pagename",
                 },
               ]}

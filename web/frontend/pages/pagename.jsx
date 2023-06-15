@@ -1,54 +1,51 @@
-import { Card, Page, Layout, TextContainer, Text } from "@shopify/polaris";
+import {
+  Avatar,
+  LegacyCard,
+  Page,
+  ResourceItem,
+  ResourceList,
+  Text,
+} from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { useTranslation } from "react-i18next";
+import { useEffect, useState } from "react";
 
 export default function PageName() {
-  const { t } = useTranslation();
+  const [users, setUsers] = useState([]);
+  useEffect(() => {
+    fetch("/api/getAllUsers")
+      .then((response) => {
+        return response.json();
+      })
+      .then((res) => {
+        const { data } = res;
+        setUsers(data);
+      });
+  }, []);
   return (
     <Page>
-      <TitleBar
-        title={t("PageName.title")}
-        primaryAction={{
-          content: t("PageName.primaryAction"),
-          onAction: () => console.log("Primary action"),
-        }}
-        secondaryActions={[
-          {
-            content: t("PageName.secondaryAction"),
-            onAction: () => console.log("Secondary action"),
-          },
-        ]}
-      />
-      <Layout>
-        <Layout.Section>
-          <Card sectioned>
-            <Text variant="headingMd" as="h2">
-              {t("PageName.heading")}
-            </Text>
-            <TextContainer>
-              <p>{t("PageName.body")}</p>
-            </TextContainer>
-          </Card>
-          <Card sectioned>
-            <Text variant="headingMd" as="h2">
-              {t("PageName.heading")}
-            </Text>
-            <TextContainer>
-              <p>{t("PageName.body")}</p>
-            </TextContainer>
-          </Card>
-        </Layout.Section>
-        <Layout.Section secondary>
-          <Card sectioned>
-            <Text variant="headingMd" as="h2">
-              {t("PageName.heading")}
-            </Text>
-            <TextContainer>
-              <p>{t("PageName.body")}</p>
-            </TextContainer>
-          </Card>
-        </Layout.Section>
-      </Layout>
+      <TitleBar title={"All Users"} />
+      <LegacyCard>
+        <ResourceList
+          resourceName={{ singular: "customer", plural: "customers" }}
+          items={users}
+          renderItem={(item) => {
+            const { name, email } = item;
+            const media = <Avatar size="medium" name={name} />;
+
+            return (
+              <ResourceItem
+                media={media}
+                accessibilityLabel={`View details for ${name}`}
+              >
+                <Text variant="bodyMd" fontWeight="bold" as="h3">
+                  {name}
+                </Text>
+                <div>{email}</div>
+              </ResourceItem>
+            );
+          }}
+        />
+      </LegacyCard>
     </Page>
   );
 }
