@@ -15,6 +15,10 @@ import {
   useCartLines,
   useApplyCartLinesChange,
   Checkbox,
+  useBuyerJourney,
+  useExtensionEditor,
+  useAttributes,
+  useExtensionData,
 } from "@shopify/checkout-ui-extensions-react";
 
 render("Checkout::Dynamic::Render", () => <App />);
@@ -29,43 +33,51 @@ function App() {
   const { query, i18n } = useExtensionApi();
   const [showError, setShowError] = useState(false);
   const [check, setCheck] = useState(true);
+  const { rendered } = useExtensionData();
 
   useEffect(() => {
     setLoading(true);
-    query(
-      `query ($handle: String!) {
-        productByHandle(handle: $handle) {
-          id
-          title
-          images(first:1){
-            nodes {
-              url
+    if (rendered.current) {
+      query(
+        `query ($handle: String!) {
+          productByHandle(handle: $handle) {
+            id
+            title
+            images(first:1){
+              nodes {
+                url
+              }
             }
-          }
-          variants(first: 1) {
-            nodes {
-              id
-              price {
-                amount
+            variants(first: 1) {
+              nodes {
+                id
+                price {
+                  amount
+                }
               }
             }
           }
+        }`,
+        {
+          variables: { handle: "gift-card" },
         }
-      }`,
-      {
-        variables: { handle: "gift-card" },
-      }
-    )
-      .then(({ data }) => {
-        setProducts(data.productByHandle);
-        applyCartLinesChange({
-          type: "addCartLine",
-          merchandiseId: data.productByHandle.variants.nodes[0].id,
-          quantity: 1,
-        });
-      })
-      .catch((error) => console.error(error))
-      .finally(() => setLoading(false));
+      )
+        .then(({ data }) => {
+          setProducts(data.productByHandle);
+          const line = lines.filter(
+            (line) =>
+              line.merchandise.id === data.productByHandle.variants.nodes[0].id
+          );
+          line.length == 0 &&
+            applyCartLinesChange({
+              type: "addCartLine",
+              merchandiseId: data.productByHandle.variants.nodes[0].id,
+              quantity: 1,
+            });
+        })
+        .catch((error) => console.error(error))
+        .finally(() => setLoading(false));
+    }
   }, []);
   useEffect(() => {
     if (showError) {
